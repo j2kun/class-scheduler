@@ -5,9 +5,10 @@ from oauth2client import file, client, tools
 
 from data import Block
 from data import Course
+from data import DayPattern
 from data import Room
 from data import Time
-from data import DayPattern
+from data import ModelBuilderInput
 
 
 # If modifying these scopes, delete the file token.json.
@@ -131,6 +132,7 @@ def convert_room(row):
 
 
 def convert_occupied_time(row):
+    # TODO: add hard-blockers occupying rooms at certain times
     pass
 
 
@@ -149,7 +151,15 @@ def convert_all_sheets(sheets):
             converter(row) for row in sheets[key]
         ]
 
-    return converted
+    return ModelBuilderInput(
+        courses=converted['courses'],
+        rooms=converted['rooms'],
+        blocks=converted['blocks'],
+    )
+
+
+def fetch_and_convert_data():
+    return convert_all_sheets(get_sheets())
 
 
 def print_rows(sheet):
@@ -160,9 +170,11 @@ def print_rows(sheet):
 if __name__ == '__main__':
     sheets = get_sheets()
 
+    # raw sheet representation
     for name, sheet in sheets.items():
         print_rows(sheet)
 
+    # converted representation
     for name, data in convert_all_sheets(sheets).items():
         print(name)
         for obj in data:

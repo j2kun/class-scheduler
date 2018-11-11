@@ -1,11 +1,13 @@
 """ An internal representation of the data types needed to build the model.
 """
 
+from collections import namedtuple
+from dataclasses import dataclass
+from dataclasses import asdict
+from datetime import datetime
 from datetime import time
 from datetime import timedelta
-from datetime import datetime
-from dataclasses import dataclass
-from collections import namedtuple
+from typing import List
 
 
 class DayPattern(set):
@@ -53,6 +55,17 @@ class Time(time):
     def add_minutes(self, minutes: int):
         return self + timedelta(minutes=minutes)
 
+    """We must override the copy and deepcopy methods because we override
+    the init/new process for this class. Doing a deepcopy of (e.g.) a dict
+    that has Times as values would otherwise cause problems as the dict
+    would attempt to guess at the *args signature of __init__.
+    """
+    def __copy__(self):
+        return Time(hour=self.hour, minute=self.minute)
+
+    def __deepcopy__(self, memo):
+        return Time(hour=self.hour, minute=self.minute)
+
 
 class DayRange:
     """ A class representing a range of 5-minute intervals.
@@ -78,8 +91,20 @@ class DayRange:
         return self.time_to_index[t]
 
 
+class BaseDataclass:
+    """ A helper base class to make smoother dict usage. """
+    def as_dict(self):
+        return asdict(self)
+
+    def items(self):
+        return self.as_dict().items()
+
+    def __iter__(self):
+        return iter(self.items())
+
+
 @dataclass
-class Block:
+class Block(BaseDataclass):
     """ A class representing a block of time. Used to make rigorous the specification
     that a course must be scheduled in the 'afternoon'.
     """
@@ -89,7 +114,7 @@ class Block:
 
 
 @dataclass
-class Course:
+class Course(BaseDataclass):
     """A dataclass representing a course. """
     course_id: str
     day_pattern: DayPattern
@@ -100,7 +125,14 @@ class Course:
 
 
 @dataclass
-class Room:
+class Room(BaseDataclass):
     """A dataclass representing a room. """
     room_name: str  # unique
     seats: int
+
+
+@dataclass
+class ModelBuilderInput(BaseDataclass):
+    courses: List[Course]
+    rooms: List[Room]
+    blocks: List[Block]
