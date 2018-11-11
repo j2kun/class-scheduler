@@ -71,7 +71,11 @@ class DayRange:
             t = times[-1]
             times.append(t.add_minutes(increment_minutes))
 
-        self.times = times
+        self.times = dict(enumerate(times))
+        self.time_to_index = {v: k for (k, v) in self.times.items()}
+
+    def index(self, t: Time):
+        return self.time_to_index[t]
 
 
 @dataclass

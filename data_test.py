@@ -37,3 +37,9 @@ def test_time_invalid_minutes():
 def test_day_range_5_minutes():
     dr = DayRange(start_time=Time(hour=7, minute=30), end_time=Time(hour=20, minute=30), increment_minutes=5)
     assert_that(dr.times).is_length(157)
+
+
+def test_day_range_index():
+    dr = DayRange(start_time=Time(hour=7, minute=30), end_time=Time(hour=20, minute=30), increment_minutes=5)
+    time = dr.times[37]
+    assert_that(dr.index(time)).is_equal_to(37)
