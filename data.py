@@ -2,6 +2,8 @@
 """
 
 from datetime import time
+from datetime import timedelta
+from datetime import datetime
 from dataclasses import dataclass
 from collections import namedtuple
 
@@ -42,6 +44,34 @@ class Time(time):
                 "Time must be in 5-minute increments, was {}".format(repr(kwargs)))
 
         return time.__new__(cls, **hour_minute)
+
+    def __add__(self, td: timedelta):
+        """ Add a timedelta to self. """
+        t = (datetime.combine(datetime.today(), self) + td).time()
+        return Time(hour=t.hour, minute=t.minute)
+
+    def add_minutes(self, minutes: int):
+        return self + timedelta(minutes=minutes)
+
+
+class DayRange:
+    """ A class representing a range of 5-minute intervals.
+
+    This class exists so that each 5-minute increment can be given a unique index,
+    and those indexes can be converted back and forth between human-readable dates
+    and solver-readable intervals.
+
+    Attriutes:
+     - times: the list of Time objects represented in this DayRange.
+    """
+
+    def __init__(self, start_time: Time, end_time: Time, increment_minutes: int):
+        times = [start_time]
+        while times[-1] < end_time:
+            t = times[-1]
+            times.append(t.add_minutes(increment_minutes))
+
+        self.times = times
 
 
 @dataclass
