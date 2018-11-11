@@ -94,6 +94,9 @@ class Course:
     course_id: str
     day_pattern: DayPattern
     desired_block: Block
+    enrollment: int
+    lecture_minutes_per_day: int
+    lab_minutes_per_week: int
 
 
 @dataclass
