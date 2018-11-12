@@ -1,7 +1,6 @@
 """ An internal representation of the data types needed to build the model.
 """
 
-from collections import namedtuple
 from dataclasses import dataclass
 from dataclasses import asdict
 from datetime import datetime
@@ -32,6 +31,9 @@ class DayPattern(set):
     def __repr__(self):
         return ''.join(DayPattern.index_to_char[d] for d in sorted(self))
 
+    def __hash__(self):
+        return hash(repr(self))
+
 
 class Time(time):
     """ A subclass of time that forces 5-minute intervals. """
@@ -54,6 +56,9 @@ class Time(time):
 
     def add_minutes(self, minutes: int):
         return self + timedelta(minutes=minutes)
+
+    def __str__(self):
+        return "{}{}".format(self.hour, self.minute)
 
     """We must override the copy and deepcopy methods because we override
     the init/new process for this class. Doing a deepcopy of (e.g.) a dict
@@ -90,6 +95,12 @@ class DayRange:
     def index(self, t: Time):
         return self.time_to_index[t]
 
+    def items(self):
+        return self.times.items()
+
+    def values(self):
+        return self.times.values()
+
 
 class BaseDataclass:
     """ A helper base class to make smoother dict usage. """
@@ -103,7 +114,7 @@ class BaseDataclass:
         return iter(self.items())
 
 
-@dataclass
+@dataclass(eq=True, frozen=True)
 class Block(BaseDataclass):
     """ A class representing a block of time. Used to make rigorous the specification
     that a course must be scheduled in the 'afternoon'.
@@ -112,27 +123,48 @@ class Block(BaseDataclass):
     start_time: Time
     end_time: Time
 
+    def contains(self, time: Time) -> bool:
+        return self.start_time < time < self.end_time
 
-@dataclass
+
+@dataclass(eq=True, frozen=True)
 class Course(BaseDataclass):
     """A dataclass representing a course. """
     course_id: str
     day_pattern: DayPattern
-    desired_block: Block
+    desired_block: int
     enrollment: int
     lecture_minutes_per_day: int
     lab_minutes_per_week: int
 
 
-@dataclass
+@dataclass(eq=True, frozen=True)
 class Room(BaseDataclass):
     """A dataclass representing a room. """
     room_name: str  # unique
     seats: int
 
+    def can_fit(self, course: Course) -> bool:
+        return self.seats > course.enrollment
 
-@dataclass
+
+@dataclass(eq=True, frozen=True)
 class ModelBuilderInput(BaseDataclass):
     courses: List[Course]
     rooms: List[Room]
     blocks: List[Block]
+
+
+""" Index classes. """
+
+@dataclass(eq=True, frozen=True)
+class DayRoomTime(BaseDataclass):
+    day: str
+    room: Room
+    time: Time
+
+
+@dataclass(eq=True, frozen=True)
+class CourseDay(BaseDataclass):
+    course: Course
+    day: str

@@ -97,7 +97,7 @@ def convert_course(row):
 
 
 def str_to_time(timestr: str) -> Time:
-    time = datetime.strptime(timestr, "%H:%M:%S %p").time()
+    time = datetime.strptime(timestr, "%H:%M").time()
     return Time(hour=time.hour, minute=time.minute)
 
 
