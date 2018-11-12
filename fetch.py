@@ -6,9 +6,10 @@ from oauth2client import file, client, tools
 from data import Block
 from data import Course
 from data import DayPattern
+from data import ModelBuilderInput
 from data import Room
 from data import Time
-from data import ModelBuilderInput
+from data import TimeRange
 
 
 # If modifying these scopes, delete the file token.json.
@@ -136,6 +137,17 @@ def convert_occupied_time(row):
     pass
 
 
+def build_day_range():
+    start_time = Time(hour=7, minute=0)  # 7:00 AM
+    end_time = Time(hour=20, minute=30)  # 8:30 PM
+
+    return TimeRange(
+        start_time=start_time,
+        end_time=end_time,
+        increment_minutes=5
+    )
+
+
 def convert_all_sheets(sheets):
     converters = {
         'courses': convert_course,
@@ -152,9 +164,10 @@ def convert_all_sheets(sheets):
         ]
 
     return ModelBuilderInput(
+        blocks=converted['blocks'],
         courses=converted['courses'],
         rooms=converted['rooms'],
-        blocks=converted['blocks'],
+        day_range=build_day_range(),
     )
 
 

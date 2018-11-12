@@ -9,11 +9,10 @@ from datetime import timedelta
 from typing import List
 
 
-class DayPattern(set):
+class DayPattern(str):
     """A class representing a subset of the days of the week, represented as integers. """
 
-    char_to_index = {'M': 0, 'T': 1, 'W': 2, 'R': 3, 'F': 4, }
-    index_to_char = {v: k for (k, v) in char_to_index.items()}
+    valid_chars = 'MTWRF'
 
     @staticmethod
     def parse(day_pattern_str):
@@ -21,18 +20,14 @@ class DayPattern(set):
 
         Example: "MWR" represents "Monday, Wednesday, Thursday"
         """
-        if not all(c in DayPattern.char_to_index for c in day_pattern_str):
+        if not all(c in DayPattern.valid_chars for c in day_pattern_str):
             raise TypeError(
                 ("Input {} includes invalid characters, must be a "
                  "substring of MTWRF.").format(day_pattern_str))
 
-        return DayPattern(DayPattern.char_to_index[c] for c in day_pattern_str)
-
-    def __repr__(self):
-        return ''.join(DayPattern.index_to_char[d] for d in sorted(self))
-
-    def __hash__(self):
-        return hash(repr(self))
+        return DayPattern(''.join(
+            sorted(set(day_pattern_str), key=DayPattern.valid_chars.index)
+        ))
 
 
 class Time(time):
@@ -58,7 +53,7 @@ class Time(time):
         return self + timedelta(minutes=minutes)
 
     def __str__(self):
-        return "{}{}".format(self.hour, self.minute)
+        return "{:02d}{:02d}".format(self.hour, self.minute)
 
     """We must override the copy and deepcopy methods because we override
     the init/new process for this class. Doing a deepcopy of (e.g.) a dict
@@ -89,6 +84,7 @@ class TimeRange:
             t = times[-1]
             times.append(t.add_minutes(increment_minutes))
 
+        self.increment_minutes = increment_minutes
         self.times = dict(enumerate(times))
         self.time_to_index = {v: k for (k, v) in self.times.items()}
 
@@ -100,6 +96,12 @@ class TimeRange:
 
     def values(self):
         return self.times.values()
+
+    def sub_range(self, start_time: Time, end_time: Time):
+        return TimeRange(
+                start_time=start_time,
+                end_time=end_time,
+                increment_minutes=self.increment_minutes)
 
 
 class BaseDataclass:
@@ -153,6 +155,7 @@ class ModelBuilderInput(BaseDataclass):
     courses: List[Course]
     rooms: List[Room]
     blocks: List[Block]
+    day_range: TimeRange
 
 
 """ Index classes. """

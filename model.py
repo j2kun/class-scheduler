@@ -3,31 +3,45 @@
 Uses the MIP solver detailed at
 https://developers.google.com/optimization/mip/integer_opt
 """
+from ortools.linear_solver import pywraplp
 
-from data import TimeRange
 from data import ModelBuilderInput
-from data import Time
 from fetch import fetch_and_convert_data
 from variables import build_variables
 from constraints import build_constraints
 
 
-def build_day_range():
-    start_time = Time(hour=7, minute=0)  # 7:00 AM
-    end_time = Time(hour=20, minute=30)  # 8:30 PM
-
-    return TimeRange(
-        start_time=start_time,
-        end_time=end_time,
-        increment_minutes=5
-    )
-
 def build_model(model_input: ModelBuilderInput):
     """ Build the course scheduler model. """
-    day_range = build_day_range()
-    variables = build_variables(model_input, day_range)
+    print("Building internal representation.")
+    variables = build_variables(model_input)
     constraints = build_constraints(model_input, variables)
-    pass
+
+    print("Converting to ortools model.")
+    solver = pywraplp.Solver(
+        'SolveIntegerProblem',
+        pywraplp.Solver.CBC_MIXED_INTEGER_PROGRAMMING
+    )
+
+    variable_to_solver_var = {
+        var: var.to_solver_var(solver) for var in variables
+    }
+
+    for constraint in constraints.all_constraints():
+        constraint.to_solver_constraint(solver, variable_to_solver_var)
+
+    objective = solver.Objective()
+    objective.SetMaximization()
+
+    print("Starting solve.")
+    result_status = solver.Solve()
+    print("Finished solve, status={}.".format(result_status))
+
+    sorted_variables = sorted(
+        variable_to_solver_var.values(), key=lambda v: v.name())
+    for variable in sorted_variables:
+        if variable.solution_value() > 0:
+            print('%s = %d' % (variable.name(), variable.solution_value()))
 
 
 if __name__ == "__main__":

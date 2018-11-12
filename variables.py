@@ -8,11 +8,11 @@ from itertools import product
 from data import Block
 from data import Course
 from data import CourseDay
-from data import TimeRange
-from data import DayRoom
+from data import DayRoomTime
 from data import ModelBuilderInput
 from data import Room
 from data import Time
+from data import TimeRange
 
 
 class Variable:
@@ -21,7 +21,7 @@ class Variable:
 
 
 @dataclass(eq=True, frozen=True)
-class ClassStartVariable:
+class ClassStartVariable(Variable):
     """ A binary variable indexed by
 
     Course c
@@ -43,9 +43,16 @@ class ClassStartVariable:
     def max(self):
         return 1
 
+    def unique_class_key(self):
+        return "{}-{}-{}".format(
+            self.course.course_id,
+            self.course.day_pattern,
+            self.course.desired_block,
+        )
+
     def __str__(self):
         return "ClassStart_{}_{}_{}_{}".format(
-            self.course.course_id,
+            self.unique_class_key(),
             self.day,
             self.time,
             self.room.room_name)
@@ -55,23 +62,26 @@ class VariableIndexes:
     def __init__(self):
         self.variables = set()
         self.by_course_day = defaultdict(list)
-        self.by_day_room = defaultdict(list)
+        self.by_day_room_time = defaultdict(list)
 
     def __len__(self):
         return len(self.variables)
 
+    def __iter__(self):
+        return iter(self.variables)
+
     def add(self, variable: ClassStartVariable):
         course_day = CourseDay(course=variable.course, day=variable.day)
-        day_room = DayRoom(day=variable.day, room=variable.room)
+        day_room_time = DayRoomTime(
+            day=variable.day, room=variable.room, time=variable.time
+        )
 
         self.by_course_day[course_day].append(variable)
-        self.by_day_room[day_room].append(variable)
+        self.by_day_room_time[day_room_time].append(variable)
         self.variables.add(variable)
 
 
-def build_variables(
-        model_input: ModelBuilderInput,
-        day_range: TimeRange) -> VariableIndexes:
+def build_variables(model_input: ModelBuilderInput) -> VariableIndexes:
     variable_indexes = VariableIndexes()
     blocks_by_id = {b.block_id: b for b in model_input.blocks}
 
@@ -80,11 +90,11 @@ def build_variables(
         legal_rooms = [
             room for room in model_input.rooms if room.can_fit(course)]
         legal_times = [
-            time for time in day_range.values()
+            time for time in model_input.day_range.values()
             if block.contains(time)
         ]
         room_times = list(product(legal_rooms, legal_times))
-        print("Generating {} variables for course='{}' day={} block={}".format(
+        print("Generating {} variables for course='{}' days={} block={}".format(
             len(room_times),
             course.course_id,
             course.day_pattern,

@@ -1,23 +1,18 @@
 """ A module for building and representing constraints. """
 
 from dataclasses import dataclass
+from datetime import timedelta
+from itertools import chain
 from typing import List
 from typing import Set
 
 from variables import ClassStartVariable
 from variables import VariableIndexes
-from data import Block
-from data import Course
+from data import CourseDay
 from data import TimeRange
 from data import DayRoomTime
 from data import ModelBuilderInput
-from data import Room
-from data import Time
-
-
-class Constraint:
-    def to_solver_constraint(self, solver):
-        pass
+from data import TimeRange
 
 
 @dataclass
@@ -25,6 +20,21 @@ class UniquenessConstraint:
     """ A constraint that requires every class be offered exactly once
     on the day required. """
     start_variables: Set[ClassStartVariable]
+
+    def to_solver_constraint(self, solver, variable_to_solver_var):
+        constraint = solver.Constraint(1, 1, str(self))
+        for variable in self.start_variables:
+            solver_var = variable_to_solver_var[variable]
+            constraint.SetCoefficient(solver_var, 1)
+
+        return constraint
+
+    def __str__(self):
+        first_var = self.start_variables[0]
+        return "Uniqueness_{}_{}".format(
+            first_var.unique_class_key(),
+            first_var.day,
+        )
 
 
 @dataclass
@@ -36,8 +46,29 @@ class ConflictConstraint:
     variable, and the variables that may not be positive if X=1 are the
     "blocked" variables.
     """
-    branching_variables: ClassStartVariable
+    branching_variable: ClassStartVariable
     blocked_variables: Set[ClassStartVariable]
+
+    def to_solver_constraint(self, solver, variable_to_solver_var):
+        C = len(self.blocked_variables)
+        constraint = solver.Constraint(0, C, str(self))
+        branching_solver_var = variable_to_solver_var[self.branching_variable]
+
+        constraint.SetCoefficient(branching_solver_var, C)
+        for variable in self.blocked_variables:
+            solver_var = variable_to_solver_var[variable]
+            constraint.SetCoefficient(solver_var, 1)
+
+        return constraint
+
+    def __str__(self):
+        branching_var = self.branching_variable
+        return "Conflict_{}_{}_{}_{}".format(
+            branching_var.unique_class_key(),
+            branching_var.day,
+            branching_var.room,
+            branching_var.time,
+        )
 
 
 @dataclass
@@ -51,6 +82,12 @@ class Constraints:
             + len(self.conflict_constraints)
         )
 
+    def all_constraints(self):
+        return chain(
+            self.uniqueness_constraints,
+            self.conflict_constraints,
+        )
+
 
 def build_uniqueness_constraints(
         model_input: ModelBuilderInput,
@@ -61,7 +98,7 @@ def build_uniqueness_constraints(
         for day in course.day_pattern:
             course_day = CourseDay(course=course, day=day)
             relevant_vars = variable_indexes.by_course_day[course_day]
-            constraints.add(UniquenessConstraint(
+            constraints.append(UniquenessConstraint(
                 start_variables=relevant_vars))
 
     print("Built {} uniqueness constraints".format(len(constraints)))
@@ -73,18 +110,30 @@ def build_conflict_constraints(
         variable_indexes: VariableIndexes) -> List[ConflictConstraint]:
     constraints = []
 
-    for class_start_var in variable_index.variables:
+    for class_start_var in variable_indexes.variables:
         course = class_start_var.course
         day = class_start_var.day
         room = class_start_var.room
         time = class_start_var.time
 
-        day_room_time = DayRoomTime(day=day, room=room, time=time)
+        blocked_time_range = model_input.day_range.sub_range(
+            start_time=time,
+            end_time=time + timedelta(minutes=course.lecture_minutes_per_day)
+        )
 
-        relevant_vars = variable_indexes.by_day_room[]
+        blocked_vars = []
+        for blocked_time in blocked_time_range.values():
+            day_room_time = DayRoomTime(
+                day=day, room=room, time=blocked_time
+            )
+            blocked_vars.extend(
+                variable_indexes.by_day_room_time[day_room_time]
+            )
 
-
-
+        constraints.append(ConflictConstraint(
+            branching_variable=class_start_var,
+            blocked_variables=blocked_vars,
+        ))
 
     print("Built {} conflict constraints".format(len(constraints)))
     return constraints
