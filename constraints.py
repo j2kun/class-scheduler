@@ -8,7 +8,7 @@ from variables import ClassStartVariable
 from variables import VariableIndexes
 from data import Block
 from data import Course
-from data import DayRange
+from data import TimeRange
 from data import DayRoomTime
 from data import ModelBuilderInput
 from data import Room

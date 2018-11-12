@@ -8,7 +8,7 @@ from itertools import product
 from data import Block
 from data import Course
 from data import CourseDay
-from data import DayRange
+from data import TimeRange
 from data import DayRoom
 from data import ModelBuilderInput
 from data import Room
@@ -71,7 +71,7 @@ class VariableIndexes:
 
 def build_variables(
         model_input: ModelBuilderInput,
-        day_range: DayRange) -> VariableIndexes:
+        day_range: TimeRange) -> VariableIndexes:
     variable_indexes = VariableIndexes()
     blocks_by_id = {b.block_id: b for b in model_input.blocks}
 

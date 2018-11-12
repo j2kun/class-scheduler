@@ -72,7 +72,7 @@ class Time(time):
         return Time(hour=self.hour, minute=self.minute)
 
 
-class DayRange:
+class TimeRange:
     """ A class representing a range of 5-minute intervals.
 
     This class exists so that each 5-minute increment can be given a unique index,
@@ -80,7 +80,7 @@ class DayRange:
     and solver-readable intervals.
 
     Attriutes:
-     - times: the list of Time objects represented in this DayRange.
+     - times: the list of Time objects represented in this TimeRange.
     """
 
     def __init__(self, start_time: Time, end_time: Time, increment_minutes: int):

@@ -4,7 +4,7 @@ import pytest
 
 from data import Time
 from data import DayPattern
-from data import DayRange
+from data import TimeRange
 
 
 def test_daypattern():
@@ -35,11 +35,11 @@ def test_time_invalid_minutes():
         Time(hour=7, minute=31)
 
 def test_day_range_5_minutes():
-    dr = DayRange(start_time=Time(hour=7, minute=30), end_time=Time(hour=20, minute=30), increment_minutes=5)
+    dr = TimeRange(start_time=Time(hour=7, minute=30), end_time=Time(hour=20, minute=30), increment_minutes=5)
     assert_that(dr.times).is_length(157)
 
 
 def test_day_range_index():
-    dr = DayRange(start_time=Time(hour=7, minute=30), end_time=Time(hour=20, minute=30), increment_minutes=5)
+    dr = TimeRange(start_time=Time(hour=7, minute=30), end_time=Time(hour=20, minute=30), increment_minutes=5)
     time = dr.times[37]
     assert_that(dr.index(time)).is_equal_to(37)
