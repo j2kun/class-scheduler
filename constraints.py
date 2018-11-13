@@ -38,6 +38,46 @@ class UniquenessConstraint:
 
 
 @dataclass
+class MeetingConsistencyConstraint:
+    """ A constraint that requires a class to start at the same time
+    and in the same room on each day it's offered.
+
+    One of these constraints is built for each (course, time, room, day),
+    and has size len(course.day_pattern).
+
+    The branching_variable is the(course, time, room, day),
+    and the forced_variables are the corresponding ClassStartVariables
+    on the other days.
+
+    These constraints have the form(e.g., for 3) X + Y + Z = 3 W,
+    where W is the branching variable and X, Y, Z are forced variables.
+    """
+    branching_variable: ClassStartVariable
+    forced_variables: Set[ClassStartVariable]
+
+    def to_solver_constraint(self, solver, variable_to_solver_var):
+        C = len(self.forced_variables)
+        constraint = solver.Constraint(0, 0, str(self))
+        branching_solver_var = variable_to_solver_var[self.branching_variable]
+
+        constraint.SetCoefficient(branching_solver_var, -C)
+        for variable in self.forced_variables:
+            solver_var = variable_to_solver_var[variable]
+            constraint.SetCoefficient(solver_var, 1)
+
+        return constraint
+
+    def __str__(self):
+        first_var = self.branching_variable
+        return "MeetingConsistency_{}_{}_{}_{}".format(
+            first_var.unique_class_key(),
+            first_var.day,
+            first_var.time,
+            first_var.room,
+        )
+
+
+@dataclass
 class ConflictConstraint:
     """ A constraint that ensures, if a class is scheduled in room r
     at time t, then no other course starts while that class is in session.
@@ -75,17 +115,20 @@ class ConflictConstraint:
 class Constraints:
     uniqueness_constraints: List[UniquenessConstraint]
     conflict_constraints: List[ConflictConstraint]
+    meeting_consistency_constraints: List[MeetingConsistencyConstraint]
 
     def __len__(self):
         return (
             len(self.uniqueness_constraints)
             + len(self.conflict_constraints)
+            + len(self.meeting_consistency_constraints)
         )
 
     def all_constraints(self):
         return chain(
             self.uniqueness_constraints,
             self.conflict_constraints,
+            self.meeting_consistency_constraints,
         )
 
 
@@ -139,6 +182,44 @@ def build_conflict_constraints(
     return constraints
 
 
+def build_meeting_consistency_constraints(
+        model_input: ModelBuilderInput,
+        variable_indexes: VariableIndexes) -> List[MeetingConsistencyConstraint]:
+    constraints = []
+
+    for variable in variable_indexes.variables:
+        course = variable.course
+        other_days = [c for c in course.day_pattern if c != variable.day]
+
+        """ It makes sense to build these variables here instead
+        of looking up an index, because the variable _is_ the
+        index in this case. THe @dataclass will ensure the
+        variable built here is the same as a lookup, though
+        this does require us to change this instantiation in the
+        case that we add another index to ClassStartVariable.
+        In such a case, it may make sense to migrate this to a
+        lookup.
+        """
+        other_vars = set(
+            ClassStartVariable(
+                course=course,
+                day=other_day,
+                time=variable.time,
+                room=variable.room,
+            )
+            for other_day in other_days
+        )
+
+        constraints.append(MeetingConsistencyConstraint(
+            branching_variable=variable,
+            forced_variables=other_vars,
+        ))
+
+    print("Built {} meeting consistency constraints".format(
+        len(constraints)))
+    return constraints
+
+
 def build_constraints(
         model_input: ModelBuilderInput,
         variables: VariableIndexes) -> Constraints:
@@ -147,8 +228,11 @@ def build_constraints(
             model_input, variables)
     conflict_constraints = build_conflict_constraints(
             model_input, variables)
+    meeting_consistency_constraints = build_meeting_consistency_constraints(
+            model_input, variables)
 
     return Constraints(
         uniqueness_constraints=uniqueness_constraints,
         conflict_constraints=conflict_constraints,
+        meeting_consistency_constraints=meeting_consistency_constraints,
     )
