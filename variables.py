@@ -44,14 +44,14 @@ class ClassStartVariable(Variable):
         return 1
 
     def unique_class_key(self):
-        return "{}-{}-{}".format(
+        return "{:03d}-{}-{}".format(
             self.course.course_id,
+            self.course.course_name,
             self.course.day_pattern,
-            self.course.desired_block,
         )
 
     def __str__(self):
-        return "ClassStart_{}_{}_{}_{}".format(
+        return "ClassStart_{}_{}_{}_Room_{}".format(
             self.unique_class_key(),
             self.day,
             self.time,

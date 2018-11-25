@@ -17,7 +17,7 @@ SCOPES = 'https://www.googleapis.com/auth/spreadsheets.readonly'
 
 # The ID and range of a sample spreadsheet.
 SPREADSHEET_ID = '11PsAQoazA3Jr799Nj4BPON4mANbjSsKjVizXh1cKK1M'
-COURSES_TO_SCHEDULE_RANGE = 'Courses to Schedule!A2:J'
+COURSES_TO_SCHEDULE_RANGE = 'Courses to Schedule!A2:K'
 ROOMS_RANGE = 'Rooms!A2:B'
 BLOCKS_RANGE = 'Blocks!A2:C'
 OCCUPIED_TIMES_RANGE = 'Occupied Times!A2:D'
@@ -76,24 +76,26 @@ def convert_course(row):
 
     Schema:
 
-    [0]: course_id: str
-    [1]: day_pattern: str
-    [2]: block: int
-    [3]: enrollment: int
-    [4]: lecture hours per week: int
-    [5]: lab hours per week: int
-    [6]: # weeks: float
-    [7]: min minutes per day: int
-    [8]: total lecture minutes per week: int
-    [9]: total lab minutes per week: int
+    [0]: course_id: int
+    [1]: course_name: str
+    [2]: day_pattern: str
+    [3]: block: int
+    [4]: enrollment: int
+    [5]: lecture hours per week: int
+    [6]: lab hours per week: int
+    [7]: num weeks: float
+    [8]: min minutes per day: int
+    [9]: total lecture minutes per week: int
+    [10]: total lab minutes per week: int
     """
     return Course(
         course_id=str(row[0]),
-        day_pattern=DayPattern.parse(row[1]),
-        desired_block=int(row[2]),
-        enrollment=int(row[3]),
-        lecture_minutes_per_day=int(row[7]),
-        lab_minutes_per_week=int(row[9]),
+        course_name=str(row[1]),
+        day_pattern=DayPattern.parse(row[2]),
+        desired_block=int(row[3]),
+        enrollment=int(row[4]),
+        lecture_minutes_per_day=int(row[8]),
+        lab_minutes_per_week=int(row[10]),
     )
 
 

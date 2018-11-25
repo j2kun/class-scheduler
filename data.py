@@ -133,6 +133,7 @@ class Block(BaseDataclass):
 class Course(BaseDataclass):
     """A dataclass representing a course. """
     course_id: str
+    course_name: str
     day_pattern: DayPattern
     desired_block: int
     enrollment: int
