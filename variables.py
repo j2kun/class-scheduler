@@ -44,7 +44,7 @@ class ClassStartVariable(Variable):
         return 1
 
     def unique_class_key(self):
-        return "{:03d}-{}-{}".format(
+        return "{}-{}-{}".format(
             self.course.course_id,
             self.course.course_name,
             self.course.day_pattern,
